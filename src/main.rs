@@ -2,7 +2,7 @@ use anyhow;
 use sdl2::{
     self,
     event::Event,
-    keyboard::Keycode,
+    keyboard::{Keycode, Scancode},
     pixels::Color,
     rect::{Point, Rect},
     render::{Canvas, TextureCreator, TextureQuery},
@@ -101,6 +101,16 @@ fn main() -> anyhow::Result<()> {
             }
         }
 
+        for scancode in state.events.keyboard_state().pressed_scancodes() {
+            match scancode {
+                Scancode::Up => state.p1_centre.y = state.p1_centre.y - 8,
+                Scancode::Down => state.p1_centre.y = state.p1_centre.y + 8,
+                Scancode::W => state.p2_centre.y = state.p2_centre.y - 8,
+                Scancode::S => state.p2_centre.y = state.p2_centre.y + 8,
+                _ => {}
+            }
+        }
+
         // Draw and then sleep for 1 60th of a second i.e. locks to 60fps.
         // No high refresh rate thrilling pong gameplay for you.
         draw(&mut state);
@@ -116,6 +126,7 @@ fn draw(state: &mut State) {
     draw_centre_line(state);
     draw_score(state);
     draw_players(state);
+    draw_ball(state);
     state.canvas.present();
 }
 
@@ -170,4 +181,18 @@ fn draw_players(state: &mut State) {
         ))
         .unwrap();
     state.canvas.set_draw_color(Color::WHITE);
+}
+
+fn draw_ball(state: &mut State) {
+    state.canvas.set_draw_color(Color::WHITE);
+    state
+        .canvas
+        .fill_rect(get_centred_rect(
+            state.ball_centre.x as u32,
+            state.ball_centre.y as u32,
+            BALL_SIZE,
+            BALL_SIZE,
+        ))
+        .unwrap();
+    state.canvas.set_draw_color(Color::BLACK);
 }
