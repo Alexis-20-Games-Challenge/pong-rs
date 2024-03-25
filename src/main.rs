@@ -1,22 +1,16 @@
 use anyhow;
 use sdl2::{
-    self, 
-    event::Event, 
-    keyboard::Keycode, 
-    pixels::Color, 
-    rect::{Point, Rect}, 
-    render::{Canvas, TextureCreator, TextureQuery}, 
-    ttf::*, 
-    video::{Window, WindowContext}, 
-    EventPump, 
-    Sdl, 
-    VideoSubsystem
-};   
-use std::{
-    fs,
-    path::PathBuf,
-    time::Duration
+    self,
+    event::Event,
+    keyboard::Keycode,
+    pixels::Color,
+    rect::{Point, Rect},
+    render::{Canvas, TextureCreator, TextureQuery},
+    ttf::*,
+    video::{Window, WindowContext},
+    EventPump, Sdl, VideoSubsystem,
 };
+use std::{fs, path::PathBuf, time::Duration};
 
 const WIDTH: u32 = 512;
 const HEIGHT: u32 = 512;
@@ -24,8 +18,9 @@ const CENTRE: u32 = WIDTH / 2;
 const BALL_SIZE: u32 = 8;
 const RECT_WIDTH: u32 = 16;
 const RECT_HEIGHT: u32 = 64;
+const FONT_PATH: &str = "./src/assets/RobotoMono-Bold.ttf";
 
-/// This is the gamestate struct 
+/// This is the gamestate struct
 struct State {
     score: (u8, u8),
     p1_centre: Point,
@@ -57,12 +52,12 @@ impl State {
             score: (0u8, 0u8),
             p1_centre: Point::new(32, (HEIGHT / 2).try_into().unwrap()),
             p2_centre: Point::new(
-                (WIDTH - 32).try_into().unwrap(), 
-                (HEIGHT / 2).try_into().unwrap()
+                (WIDTH - 32).try_into().unwrap(),
+                (HEIGHT / 2).try_into().unwrap(),
             ),
             ball_centre: Point::new(
-                (WIDTH / 2).try_into().unwrap(), 
-                (HEIGHT / 2).try_into().unwrap()
+                (WIDTH / 2).try_into().unwrap(),
+                (HEIGHT / 2).try_into().unwrap(),
             ),
             sdl,
             vid,
@@ -72,6 +67,17 @@ impl State {
             events,
         }
     }
+}
+
+/// Macro because I am lazy
+macro_rules! key_event {
+    ($key:pat) => {
+        Event::KeyDown {
+            keycode: Some($key),
+            ..
+        }
+    };
+    () => {};
 }
 
 fn main() -> anyhow::Result<()> {
@@ -90,9 +96,7 @@ fn main() -> anyhow::Result<()> {
     'running: loop {
         for event in state.events.poll_iter() {
             match event {
-                #[rustfmt::skip]
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
+                Event::Quit { .. } | key_event!(Keycode::Escape) => break 'running,
                 _ => {}
             }
         }
@@ -107,21 +111,63 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn draw(state: &mut State) {
+    state.canvas.set_draw_color(Color::BLACK);
     state.canvas.clear();
+    draw_centre_line(state);
+    draw_score(state);
+    draw_players(state);
+    state.canvas.present();
+}
 
+fn get_centred_rect(cx: u32, cy: u32, w: u32, h: u32) -> Rect {
+    Rect::new((cx - w / 2) as i32, (cy - h / 2) as i32, w, h)
+}
+
+fn draw_score(state: &mut State) {
     // Font rendering
-    let font_path = fs::canonicalize("./assets/RobotoMono-Bold.ttf").unwrap();
-    let mut font = state.ttf.load_font(font_path, 72).unwrap();
+    let mut font = state.ttf.load_font(FONT_PATH, 72).unwrap();
+
     let surface = font
-        .render("Test")
+        .render(&format!("{}   {}", state.score.0, state.score.1)[..])
         .solid(Color::WHITE)
         .unwrap();
-    let texture = state.tex
-        .create_texture_from_surface(&surface)
-        .unwrap();
+    let texture = state.tex.create_texture_from_surface(&surface).unwrap();
     let TextureQuery { width, height, .. } = texture.query();
-    let target = Rect::new(CENTRE as i32, CENTRE as i32, width, height);
-    state.canvas.copy(&texture, None, Some(target));
+    let target = get_centred_rect(CENTRE, height / 2, width, height);
+    state.canvas.copy(&texture, None, Some(target)).unwrap();
+}
 
-    state.canvas.present();
+fn draw_centre_line(state: &mut State) {
+    state.canvas.set_draw_color(Color::WHITE);
+    state
+        .canvas
+        .draw_line(
+            Point::new(CENTRE as i32, 0i32),
+            Point::new(CENTRE as i32, HEIGHT as i32),
+        )
+        .unwrap();
+    state.canvas.set_draw_color(Color::BLACK)
+}
+
+fn draw_players(state: &mut State) {
+    state.canvas.set_draw_color(Color::WHITE);
+    state
+        .canvas
+        .fill_rect(get_centred_rect(
+            state.p1_centre.x as u32,
+            state.p1_centre.y as u32,
+            RECT_WIDTH,
+            RECT_HEIGHT,
+        ))
+        .unwrap();
+    state
+        .canvas
+        .fill_rect(get_centred_rect(
+            state.p2_centre.x as u32,
+            state.p2_centre.y as u32,
+            RECT_WIDTH,
+            RECT_HEIGHT,
+        ))
+        .unwrap();
+    state.canvas.set_draw_color(Color::WHITE);
 }
