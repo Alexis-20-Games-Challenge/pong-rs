@@ -10,7 +10,8 @@ use sdl2::{
     video::{Window, WindowContext},
     EventPump, Sdl, VideoSubsystem,
 };
-use std::{fs, path::PathBuf, time::Duration};
+use std::{fs, path::PathBuf, str::Matches, time::Duration};
+use vec2;
 
 const WIDTH: u32 = 512;
 const HEIGHT: u32 = 512;
@@ -19,6 +20,7 @@ const BALL_SIZE: u32 = 8;
 const RECT_WIDTH: u32 = 16;
 const RECT_HEIGHT: u32 = 64;
 const FONT_PATH: &str = "./src/assets/RobotoMono-Bold.ttf";
+const PADDLE_V: i32 = 8;
 
 /// This is the gamestate struct
 struct State {
@@ -32,6 +34,7 @@ struct State {
     canvas: Canvas<Window>,
     tex: TextureCreator<WindowContext>,
     events: EventPump,
+    ball_v: [i32; 2],
 }
 
 impl State {
@@ -65,6 +68,7 @@ impl State {
             canvas,
             tex,
             events,
+            ball_v: vec2::new(1, 0),
         }
     }
 }
@@ -102,12 +106,28 @@ fn main() -> anyhow::Result<()> {
         }
 
         for scancode in state.events.keyboard_state().pressed_scancodes() {
-            match scancode {
-                Scancode::Up => state.p1_centre.y = state.p1_centre.y - 8,
-                Scancode::Down => state.p1_centre.y = state.p1_centre.y + 8,
-                Scancode::W => state.p2_centre.y = state.p2_centre.y - 8,
-                Scancode::S => state.p2_centre.y = state.p2_centre.y + 8,
-                _ => {}
+            if PADDLE_V + RECT_HEIGHT as i32 / 2 <= state.p1_centre.y {
+                if scancode == Scancode::W {
+                    state.p1_centre.y = state.p1_centre.y - PADDLE_V;
+                }
+            }
+
+            if state.p1_centre.y < (HEIGHT - RECT_HEIGHT / 2) as i32 {
+                if scancode == Scancode::S {
+                    state.p1_centre.y = state.p1_centre.y + PADDLE_V;
+                }
+            }
+
+            if PADDLE_V + RECT_HEIGHT as i32 / 2 <= state.p2_centre.y {
+                if scancode == Scancode::Up {
+                    state.p2_centre.y = state.p2_centre.y - PADDLE_V;
+                }
+            }
+
+            if state.p2_centre.y < (HEIGHT - RECT_HEIGHT / 2) as i32 {
+                if scancode == Scancode::Down {
+                    state.p2_centre.y = state.p2_centre.y + PADDLE_V;
+                }
             }
         }
 
@@ -195,4 +215,29 @@ fn draw_ball(state: &mut State) {
         ))
         .unwrap();
     state.canvas.set_draw_color(Color::BLACK);
+}
+
+fn ball_handle(state: &mut State) {
+    if state.ball_centre.x <= 16 {
+        state.score.1 += 1;
+        ball_reset(state);
+    } else if state.ball_centre.x >= WIDTH as i32 - 16 {
+        state.score.0 += 1;
+        ball_reset(state);
+    }
+
+    if state.ball_centre.y <= BALL_SIZE as i32 {
+        state.ball_v[0] = -state.ball_v[0];
+        state.ball_v[1] = -state.ball_v[1];
+    } else if state.ball_centre.y >= (HEIGHT - BALL_SIZE) as i32 {
+        state.ball_v[0] = -state.ball_v[0];
+        state.ball_v[1] = -state.ball_v[1];
+    }
+}
+
+fn ball_reset(state: &mut State) {
+    match (state.score.0 + state.score.1) % 2 == 0 {
+        true => state.ball_v = vec2::new(1, 0),
+        false => state.ball_v = vec2::new(-1, 0),
+    };
 }
