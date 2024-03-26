@@ -107,6 +107,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
 
+        let mut is_reset_queued = false;
         for scancode in state.events.keyboard_state().pressed_scancodes() {
             if PADDLE_V + RECT_HEIGHT as i32 / 2 <= state.p1_centre.y {
                 if scancode == Scancode::W {
@@ -131,6 +132,14 @@ fn main() -> anyhow::Result<()> {
                     state.p2_centre.y = state.p2_centre.y + PADDLE_V;
                 }
             }
+
+            if scancode == Scancode::R {
+                is_reset_queued = true;
+            }
+        }
+
+        if is_reset_queued {
+            ball_reset(&mut state);
         }
 
         ball_handle(&mut state);
@@ -271,12 +280,10 @@ fn ball_handle(state: &mut State) {
         RECT_WIDTH,
         RECT_HEIGHT,
     )) {
-        let new_y = match state.p2_centre.y > state.ball_centre.y {
-            true => 0,
-            false => (state.ball_centre.y - state.p2_centre.y) / 8,
-        };
-
-        state.ball_d = [(state.ball_centre.x - state.p2_centre.x) / 8 - 1, new_y];
+        state.ball_d = [
+            (state.ball_centre.x - state.p2_centre.x) / 8 - 1,
+            (state.ball_centre.y - state.p2_centre.y) / 8,
+        ];
         state.ball_s += 1;
     }
 
