@@ -70,7 +70,7 @@ impl State {
             tex,
             events,
             ball_d: vec2::new(1, 0),
-            ball_s: 1,
+            ball_s: 4,
         }
     }
 }
@@ -223,19 +223,19 @@ fn draw_ball(state: &mut State) {
 
 fn ball_handle(state: &mut State) {
     // Scoring
-    if state.ball_centre.x <= 16 {
+    if state.ball_centre.x <= 8 {
         state.score.1 += 1;
         ball_reset(state);
-    } else if state.ball_centre.x >= WIDTH as i32 - 16 {
+    } else if state.ball_centre.x >= WIDTH as i32 - 8 {
         state.score.0 += 1;
         ball_reset(state);
     }
 
     // top/bottom collisions
-    if state.ball_centre.y <= BALL_SIZE as i32 * state.ball_s {
-        state.ball_d[1] = -state.ball_d[1] * state.ball_s;
-    } else if state.ball_centre.y >= (HEIGHT - BALL_SIZE * state.ball_s as u32) as i32 {
-        state.ball_d[1] = -state.ball_d[1] * state.ball_s;
+    if state.ball_centre.y <= BALL_SIZE as i32 + state.ball_s {
+        state.ball_d[1] = -state.ball_d[1];
+    } else if state.ball_centre.y >= (HEIGHT - (BALL_SIZE + state.ball_s as u32)) as i32 {
+        state.ball_d[1] = -state.ball_d[1];
     }
 
     // Player 1 ball bounce
@@ -252,15 +252,37 @@ fn ball_handle(state: &mut State) {
         RECT_HEIGHT,
     )) {
         state.ball_d = [
-            (state.ball_centre.x - state.p1_centre.x) / 8,
+            (state.ball_centre.x - state.p1_centre.x) / 8 + 1,
             (state.ball_centre.y - state.p1_centre.y) / 8,
         ];
         state.ball_s += 1;
     }
 
+    // Player 2 ball bounce
+    if get_centred_rect(
+        state.ball_centre.x as u32,
+        state.ball_centre.y as u32,
+        BALL_SIZE,
+        BALL_SIZE,
+    )
+    .has_intersection(get_centred_rect(
+        state.p2_centre.x as u32,
+        state.p2_centre.y as u32,
+        RECT_WIDTH,
+        RECT_HEIGHT,
+    )) {
+        let new_y = match state.p2_centre.y > state.ball_centre.y {
+            true => 0,
+            false => (state.ball_centre.y - state.p2_centre.y) / 8,
+        };
+
+        state.ball_d = [(state.ball_centre.x - state.p2_centre.x) / 8 - 1, new_y];
+        state.ball_s += 1;
+    }
+
     // Move
-    state.ball_centre.x = state.ball_centre.x + state.ball_d[0];
-    state.ball_centre.y = state.ball_centre.y + state.ball_d[1];
+    state.ball_centre.x = state.ball_centre.x + state.ball_d[0] * (state.ball_s / 4);
+    state.ball_centre.y = state.ball_centre.y + state.ball_d[1] * (state.ball_s / 4);
 }
 
 fn ball_reset(state: &mut State) {
@@ -268,5 +290,6 @@ fn ball_reset(state: &mut State) {
         true => state.ball_d = vec2::new(1, 0),
         false => state.ball_d = vec2::new(-1, 0),
     };
+    state.ball_s = 4;
     state.ball_centre = Point::new(WIDTH as i32 / 2, HEIGHT as i32 / 2);
 }
