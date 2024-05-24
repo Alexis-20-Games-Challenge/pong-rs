@@ -8,9 +8,9 @@ use sdl2::{
     render::{Canvas, TextureCreator, TextureQuery},
     ttf::*,
     video::{Window, WindowContext},
-    EventPump, Sdl, VideoSubsystem,
+    EventPump,
 };
-use std::{fs, path::PathBuf, str::Matches, time::Duration};
+use std::time::Duration;
 use vec2;
 
 const WIDTH: u32 = 512;
@@ -28,8 +28,6 @@ struct State {
     p1_centre: Point,
     p2_centre: Point,
     ball_centre: Point,
-    sdl: Sdl,
-    vid: VideoSubsystem,
     ttf: Sdl2TtfContext,
     canvas: Canvas<Window>,
     tex: TextureCreator<WindowContext>,
@@ -63,8 +61,6 @@ impl State {
                 (WIDTH / 2).try_into().unwrap(),
                 (HEIGHT / 2).try_into().unwrap(),
             ),
-            sdl,
-            vid,
             ttf,
             canvas,
             tex,
@@ -169,7 +165,7 @@ fn get_centred_rect(cx: u32, cy: u32, w: u32, h: u32) -> Rect {
 
 fn draw_score(state: &mut State) {
     // Font rendering
-    let mut font = state.ttf.load_font(FONT_PATH, 72).unwrap();
+    let font = state.ttf.load_font(FONT_PATH, 72).unwrap();
 
     let surface = font
         .render(&format!("{}   {}", state.score.0, state.score.1)[..])
